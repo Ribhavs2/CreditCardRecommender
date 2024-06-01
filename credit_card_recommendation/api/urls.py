@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import register, login, add_card, update_card, delete_card, recommend_card
+from .views import register, login, add_card, update_card, delete_card, recommend_card, get_pre_existing_cards
 
 urlpatterns = [
     path('register/', register, name='register'),
@@ -8,4 +8,5 @@ urlpatterns = [
     path('update_card/<int:card_id>/', update_card, name='update_card'),
     path('delete_card/<int:card_id>/', delete_card, name='delete_card'),
     path('recommend_card/', recommend_card, name='recommend_card'),
+    path('pre_existing_cards/', get_pre_existing_cards, name='pre_existing_cards'),
 ]
