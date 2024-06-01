@@ -17,13 +17,30 @@ class User(AbstractUser):
         related_query_name='user',
     )
 
+class Category(models.Model):
+    name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.name
+
 class PreExistingCreditCard(models.Model):
     card_name = models.CharField(max_length=100)
-    points_per_dollar = models.FloatField()
     value_per_point = models.FloatField()
+    categories = models.ManyToManyField(Category, through='CardCategory')
 
     def __str__(self):
         return self.card_name
+    
+class CardCategory(models.Model):
+    card = models.ForeignKey(PreExistingCreditCard, on_delete=models.CASCADE)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    points_per_dollar = models.FloatField()
+
+    class Meta:
+        unique_together = ('card', 'category')
+
+    def __str__(self):
+        return f"{self.card.card_name} - {self.category.name}: {self.points_per_dollar} points/dollar"
 
 class CreditCard(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
