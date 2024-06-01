@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 import json
 
-from .models import CreditCard, User
+from .models import CreditCard, User, PreExistingCreditCard
 
 User = get_user_model()
 
@@ -33,17 +33,37 @@ def login(request):
         return JsonResponse({'error': 'Invalid credentials'}, status=401)
     return JsonResponse({'error': 'Invalid request method'}, status=400)
 
+# @csrf_exempt
+# def add_card(request):
+#     if request.method == 'POST':
+#         data = json.loads(request.body)
+#         user_id = data['user_id']
+#         card_name = data['card_name']
+#         points_per_dollar = data['points_per_dollar']
+#         value_per_point = data['value_per_point']
+#         user = User.objects.get(id=user_id)
+#         CreditCard.objects.create(user=user, card_name=card_name, points_per_dollar=points_per_dollar, value_per_point=value_per_point)
+#         return JsonResponse({'message': 'Card added successfully'}, status=201)
+#     return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+
 @csrf_exempt
 def add_card(request):
     if request.method == 'POST':
         data = json.loads(request.body)
         user_id = data['user_id']
-        card_name = data['card_name']
-        points_per_dollar = data['points_per_dollar']
-        value_per_point = data['value_per_point']
+        card_id = data['card_id']
         user = User.objects.get(id=user_id)
-        CreditCard.objects.create(user=user, card_name=card_name, points_per_dollar=points_per_dollar, value_per_point=value_per_point)
+        pre_existing_card = PreExistingCreditCard.objects.get(id=card_id)
+        CreditCard.objects.create(user=user, pre_existing_card=pre_existing_card)
         return JsonResponse({'message': 'Card added successfully'}, status=201)
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+@csrf_exempt
+def get_pre_existing_cards(request):
+    if request.method == 'GET':
+        cards = PreExistingCreditCard.objects.all().values('id', 'card_name', 'points_per_dollar', 'value_per_point')
+        return JsonResponse(list(cards), safe=False, status=200)
     return JsonResponse({'error': 'Invalid request method'}, status=400)
 
 @csrf_exempt
