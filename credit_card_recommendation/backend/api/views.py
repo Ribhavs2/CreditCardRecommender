@@ -5,6 +5,9 @@ from django.contrib.auth.models import User
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 import json
 
 from .models import CreditCard, User, PreExistingCreditCard, Category, CardCategory
@@ -130,74 +133,110 @@ def delete_card(request, card_id):
 #     if request.method == 'POST':
 #         data = json.loads(request.body)
 #         user_id = data['user_id']
-#         purchase_amount = data['purchase_amount']
-#         priority = data['priority']
-
+#         category_name = data['category']
+#         amount = data['amount']
+#         priority = data['priority']  # "max_points" or "max_value"
+        
+#         # Fetch the user
 #         user = User.objects.get(id=user_id)
-#         cards = CreditCard.objects.filter(user=user)
+        
+#         # Fetch the category
+#         try:
+#             category = Category.objects.get(name=category_name)
+#         except Category.DoesNotExist:
+#             return JsonResponse({'error': 'Category does not exist'}, status=400)
+        
+#         best_value = 0
+#         recommended_card = None
 
-#         if not cards.exists():
-#             return JsonResponse({'error': 'No cards found for the user'}, status=404)
+#         # Iterate through user's credit cards
+#         for credit_card in CreditCard.objects.filter(user=user):
+#             card_categories = CardCategory.objects.filter(card=credit_card.pre_existing_card, category=category)
+#             if card_categories.exists():
+#                 card_category = card_categories.first()
+#                 points = card_category.points_per_dollar * amount
+#                 value = points * credit_card.pre_existing_card.value_per_point
 
-#         best_card = None
+#                 if priority == "max_points" and points > best_value:
+#                     best_value = points
+#                     recommended_card = credit_card.pre_existing_card
+#                 elif priority == "max_value" and value > best_value:
+#                     best_value = value
+#                     recommended_card = credit_card.pre_existing_card
 
-#         if priority == 'max_points':
-#             best_card = max(cards, key=lambda card: card.points_per_dollar)
-#         elif priority == 'max_value':
-#             best_card = max(cards, key=lambda card: card.points_per_dollar * card.value_per_point)
+#         if recommended_card:
+#             return JsonResponse({
+#                 'message': f'Recommended card based on {priority.replace("_", " ")}',
+#                 'card_name': recommended_card.card_name,
+#                 'points': points if priority == "max_points" else value
+#             }, status=200)
 #         else:
-#             return JsonResponse({'error': 'Invalid priority'}, status=400)
-
-#         return JsonResponse({
-#             'recommended_card': best_card.card_name,
-#             'points': best_card.points_per_dollar * purchase_amount,
-#             'value': best_card.points_per_dollar * best_card.value_per_point * purchase_amount
-#         }, status=200)
-
+#             return JsonResponse({'error': 'No suitable card found'}, status=400)
 #     return JsonResponse({'error': 'Invalid request method'}, status=400)
 
-@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def recommend_card(request):
-    if request.method == 'POST':
-        data = json.loads(request.body)
-        user_id = data['user_id']
-        category_name = data['category']
-        amount = data['amount']
-        priority = data['priority']  # "max_points" or "max_value"
-        
-        # Fetch the user
-        user = User.objects.get(id=user_id)
-        
-        # Fetch the category
+    try:
+        user_id = request.data.get('user_id')
+        category_name = request.data.get('category')
+        amount = request.data.get('amount')
+        priority = request.data.get('priority')
+
+        # Ensure 'amount' is converted to float
+        amount = float(amount)
+
+        user_cards = CreditCard.objects.filter(user_id=user_id)
+        if not user_cards.exists():
+            return Response({'error': 'No cards found for this user'}, status=404)
+
+        # Fetch the category instance
         try:
             category = Category.objects.get(name=category_name)
         except Category.DoesNotExist:
-            return JsonResponse({'error': 'Category does not exist'}, status=400)
-        
+            return Response({'error': 'Invalid category'}, status=400)
+
+        best_card = None
         best_value = 0
-        recommended_card = None
 
-        # Iterate through user's credit cards
-        for credit_card in CreditCard.objects.filter(user=user):
-            card_categories = CardCategory.objects.filter(card=credit_card.pre_existing_card, category=category)
-            if card_categories.exists():
-                card_category = card_categories.first()
-                points = card_category.points_per_dollar * amount
-                value = points * credit_card.pre_existing_card.value_per_point
+        for card in user_cards:
+            pre_card = card.pre_existing_card
+            try:
+                card_category = CardCategory.objects.get(card=pre_card, category=category)
+                points_per_dollar = card_category.points_per_dollar
+            except CardCategory.DoesNotExist:
+                points_per_dollar = 1  # Default value if no specific category points are found
 
-                if priority == "max_points" and points > best_value:
+            value_per_point = pre_card.value_per_point
+
+            if priority == 'max_points':
+                points = amount * points_per_dollar
+                if points > best_value:
                     best_value = points
-                    recommended_card = credit_card.pre_existing_card
-                elif priority == "max_value" and value > best_value:
+                    best_card = card
+            elif priority == 'max_value':
+                value = amount * points_per_dollar * value_per_point
+                if value > best_value:
                     best_value = value
-                    recommended_card = credit_card.pre_existing_card
+                    best_card = card
 
-        if recommended_card:
-            return JsonResponse({
-                'message': f'Recommended card based on {priority.replace("_", " ")}',
-                'card_name': recommended_card.card_name,
-                'points': points if priority == "max_points" else value
-            }, status=200)
-        else:
-            return JsonResponse({'error': 'No suitable card found'}, status=400)
-    return JsonResponse({'error': 'Invalid request method'}, status=400)
+        if best_card is None:
+            return Response({'error': 'No suitable card found'}, status=404)
+
+        return Response({
+            'card_name': best_card.pre_existing_card.card_name,
+            'points': best_value
+        })
+    except ValueError:
+        return Response({'error': 'Invalid amount value'}, status=400)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def current_user(request):
+    user = request.user
+    return Response({
+        'id': user.id,
+        'username': user.username,
+    })

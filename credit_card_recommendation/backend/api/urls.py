@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import register, login, add_card, update_card, delete_card, recommend_card, get_pre_existing_cards, \
-                   add_pre_existing_card, update_pre_existing_card, delete_pre_existing_card
+                   add_pre_existing_card, update_pre_existing_card, delete_pre_existing_card, current_user
 
 urlpatterns = [
     path('register/', register, name='register'),
@@ -13,4 +13,5 @@ urlpatterns = [
     path('pre_existing_cards/add/', add_pre_existing_card, name='add_pre_existing_card'),
     path('pre_existing_cards/update/<int:card_id>/', update_pre_existing_card, name='update_pre_existing_card'),
     path('pre_existing_cards/delete/<int:card_id>/', delete_pre_existing_card, name='delete_pre_existing_card'),
+    path('current_user/', current_user, name='current_user'),
 ]
