@@ -240,3 +240,33 @@ def current_user(request):
         'id': user.id,
         'username': user.username,
     })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_cards(request, user_id):
+    try:
+        cards = CreditCard.objects.filter(user_id=user_id)
+        cards_data = [
+            {
+                'id': card.id,
+                'pre_existing_card': {
+                    'card_name': card.pre_existing_card.card_name,
+                }
+            }
+            for card in cards
+        ]
+        return Response(cards_data)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_card(request, card_id):
+    try:
+        card = CreditCard.objects.get(id=card_id)
+        card.delete()
+        return Response({'message': 'Card deleted successfully'})
+    except CreditCard.DoesNotExist:
+        return Response({'error': 'Card not found'}, status=404)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
