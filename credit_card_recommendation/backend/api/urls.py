@@ -2,7 +2,7 @@ from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import register, login, add_card, update_card, delete_card, recommend_card, get_pre_existing_cards, \
                    add_pre_existing_card, update_pre_existing_card, delete_pre_existing_card, current_user, \
-                   user_cards, delete_card
+                   user_cards, delete_card, update_profile
 
 urlpatterns = [
     path('register/', register, name='register'),
@@ -17,6 +17,7 @@ urlpatterns = [
     path('pre_existing_cards/delete/<int:card_id>/', delete_pre_existing_card, name='delete_pre_existing_card'),
     path('current_user/', current_user, name='current_user'),
     path('user_cards/<int:user_id>/', user_cards, name='user_cards'),
+    path('update_profile/<int:user_id>/', update_profile, name='update_profile'),
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]

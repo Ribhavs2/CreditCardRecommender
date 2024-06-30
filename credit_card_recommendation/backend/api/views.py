@@ -73,29 +73,56 @@ def delete_pre_existing_card(request, card_id):
         return JsonResponse({'message': 'Pre-existing credit card deleted successfully'}, status=200)
     return JsonResponse({'error': 'Invalid request method'}, status=400)
 
-@csrf_exempt
-def add_card(request):
-    if request.method == 'POST':
-        data = json.loads(request.body)
-        user_id = data['user_id']
-        card_id = data['card_id']
+# @csrf_exempt
+# def add_card(request):
+#     if request.method == 'POST':
+#         data = json.loads(request.body)
+#         user_id = data['user_id']
+#         card_id = data['card_id']
 
-        # Fetch the user
-        user = User.objects.get(id=user_id)
+#         # Fetch the user
+#         user = User.objects.get(id=user_id)
 
-         # Fetch the pre-existing credit card
-        try:
-            pre_existing_card = PreExistingCreditCard.objects.get(id=card_id)
-        except PreExistingCreditCard.DoesNotExist:
-            return JsonResponse({'error': 'Pre-existing credit card does not exist'}, status=400)
+#          # Fetch the pre-existing credit card
+#         try:
+#             pre_existing_card = PreExistingCreditCard.objects.get(id=card_id)
+#         except PreExistingCreditCard.DoesNotExist:
+#             return JsonResponse({'error': 'Pre-existing credit card does not exist'}, status=400)
         
-        # Check if the user already has a credit card with the same name
-        if CreditCard.objects.filter(user=user, pre_existing_card=pre_existing_card).exists():
-            return JsonResponse({'error': 'User already has this credit card'}, status=400)
+#         # Check if the user already has a credit card with the same name
+#         if CreditCard.objects.filter(user=user, pre_existing_card=pre_existing_card).exists():
+#             return JsonResponse({'error': 'User already has this credit card'}, status=400)
                 
-        CreditCard.objects.create(user=user, pre_existing_card=pre_existing_card)
-        return JsonResponse({'message': 'Card added successfully'}, status=201)
-    return JsonResponse({'error': 'Invalid request method'}, status=400)
+#         CreditCard.objects.create(user=user, pre_existing_card=pre_existing_card)
+#         return JsonResponse({'message': 'Card added successfully'}, status=201)
+#     return JsonResponse({'error': 'Invalid request method'}, status=400)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def add_card(request):
+    try:
+        user_id = request.data.get('user_id')
+        card_id = request.data.get('card_id')
+        user = User.objects.get(id=user_id)
+        pre_existing_card = PreExistingCreditCard.objects.get(id=card_id)
+        credit_card, created = CreditCard.objects.get_or_create(user=user, pre_existing_card=pre_existing_card)
+        
+        if not created:
+            return Response({'error': 'Card already exists'}, status=400)
+        
+        return Response({
+            'id': credit_card.id,
+            'pre_existing_card': {
+                'card_name': credit_card.pre_existing_card.card_name,
+            }
+        })
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=404)
+    except PreExistingCreditCard.DoesNotExist:
+        return Response({'error': 'Card not found'}, status=404)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+
 
 @csrf_exempt
 def get_pre_existing_cards(request):
@@ -268,5 +295,23 @@ def delete_card(request, card_id):
         return Response({'message': 'Card deleted successfully'})
     except CreditCard.DoesNotExist:
         return Response({'error': 'Card not found'}, status=404)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_profile(request, user_id):
+    try:
+        user = User.objects.get(id=user_id)
+        user.username = request.data.get('username', user.username)
+        user.email = request.data.get('email', user.email)
+        user.save()
+        return Response({
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+        })
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=404)
     except Exception as e:
         return Response({'error': str(e)}, status=500)
