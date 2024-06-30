@@ -268,23 +268,61 @@ def current_user(request):
         'username': user.username,
     })
 
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def user_cards(request, user_id):
+#     try:
+#         cards = CreditCard.objects.filter(user_id=user_id)
+#         cards_data = []
+#         for card in cards:
+#             card_categories = CardCategory.objects.filter(card=card.pre_existing_card)
+#             categories_data = [
+#                 {
+#                     'category_name': category.category.name,
+#                     'points_per_dollar': category.points_per_dollar
+#                 }
+#                 for category in card_categories
+#             ]
+#             card_data = {
+#                 'id': card.id,
+#                 'card_name': card.pre_existing_card.card_name,
+#                 'value_per_point': card.pre_existing_card.value_per_point,
+#                 'categories': categories_data
+#             }
+#             cards_data.append(card_data)
+#         return Response(cards_data)
+#     except Exception as e:
+#         return Response({'error': str(e)}, status=500)
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def user_cards(request, user_id):
+def user_cards(request):
     try:
-        cards = CreditCard.objects.filter(user_id=user_id)
-        cards_data = [
-            {
-                'id': card.id,
-                'pre_existing_card': {
-                    'card_name': card.pre_existing_card.card_name,
+        user = request.user
+        cards = CreditCard.objects.filter(user=user)
+        cards_data = []
+        for card in cards:
+            card_categories = CardCategory.objects.filter(card=card.pre_existing_card)
+            categories_data = [
+                {
+                    'category_name': category.category.name,
+                    'points_per_dollar': category.points_per_dollar
                 }
+                for category in card_categories
+            ]
+            card_data = {
+                'id': card.id,
+                'card_name': card.pre_existing_card.card_name,
+                'value_per_point': card.pre_existing_card.value_per_point,
+                'categories': categories_data
             }
-            for card in cards
-        ]
+            cards_data.append(card_data)
         return Response(cards_data)
     except Exception as e:
         return Response({'error': str(e)}, status=500)
+
+
+
 
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
