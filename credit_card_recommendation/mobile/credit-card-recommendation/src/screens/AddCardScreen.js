@@ -79,8 +79,8 @@
 // export default AddCardScreen;
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert } from 'react-native'; // Ensure StyleSheet is imported from 'react-native'
-import { Button, TextInput, Menu, Provider } from 'react-native-paper'; // Correct imports from 'react-native-paper'
+import { View, StyleSheet, Alert } from 'react-native';
+import { Button, Menu, Provider } from 'react-native-paper';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -120,7 +120,11 @@ const AddCardScreen = ({ navigation }) => {
         },
       });
 
-      Alert.alert('Success', 'Card added successfully');
+      if (response.status === 201) {
+        Alert.alert('Success', 'Card added successfully');
+      } else {
+        throw new Error('Failed to add card');
+      }
     } catch (error) {
       console.error(error);
       Alert.alert('Error', 'Failed to add card');
@@ -130,13 +134,9 @@ const AddCardScreen = ({ navigation }) => {
   return (
     <Provider>
       <View style={styles.container}>
-        <TextInput
-          label="Select Card"
-          value={cardId}
-          onChangeText={setCardId}
-          mode="outlined"
-          style={styles.input}
-        />
+        <Button onPress={openMenu} mode="outlined" style={styles.input}>
+          {cardId ? cards.find(card => card.id === cardId)?.card_name : 'Select Card'}
+        </Button>
         <Menu
           visible={visible}
           onDismiss={closeMenu}
@@ -169,5 +169,3 @@ const styles = StyleSheet.create({
 });
 
 export default AddCardScreen;
-
-

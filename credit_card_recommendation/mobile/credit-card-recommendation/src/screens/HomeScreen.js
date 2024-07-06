@@ -34,12 +34,67 @@
 
 // export default HomeScreen;
 
-import React, { useContext } from 'react';
+
+
+
+
+
+
+// import React, { useContext } from 'react';
+// import { View, Button, StyleSheet } from 'react-native';
+// import { AuthContext } from '../AuthContext';
+
+// const HomeScreen = ({ navigation }) => {
+//   const { isAuthenticated, logout } = useContext(AuthContext);
+
+//   return (
+//     <View style={styles.container}>
+//       {!isAuthenticated ? (
+//         <>
+//           <Button title="Register" onPress={() => navigation.navigate('Register')} />
+//           <Button title="Login" onPress={() => navigation.navigate('Login')} />
+//         </>
+//       ) : (
+//         <>
+//           <Button title="Dashboard" onPress={() => navigation.navigate('Dashboard')} />
+//           <Button title="Add Card" onPress={() => navigation.navigate('AddCard')} />
+//           <Button title="Recommend Card" onPress={() => navigation.navigate('RecommendCard')} />
+//           <Button title="Profile" onPress={() => navigation.navigate('Profile')} />
+//           <Button title="Logout" onPress={logout} />
+//         </>
+//       )}
+//     </View>
+//   );
+// };
+
+// const styles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//     justifyContent: 'center',
+//     padding: 16,
+//   },
+// });
+
+// export default HomeScreen;
+
+
+
+
+import React, { useContext, useEffect } from 'react';
 import { View, Button, StyleSheet } from 'react-native';
 import { AuthContext } from '../AuthContext';
 
 const HomeScreen = ({ navigation }) => {
   const { isAuthenticated, logout } = useContext(AuthContext);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
+    }
+  }, [isAuthenticated, navigation]);
 
   return (
     <View style={styles.container}>
@@ -70,4 +125,3 @@ const styles = StyleSheet.create({
 });
 
 export default HomeScreen;
-

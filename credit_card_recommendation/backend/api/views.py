@@ -102,25 +102,45 @@ def add_card(request):
     try:
         user_id = request.data.get('user_id')
         card_id = request.data.get('card_id')
+
+        # Debugging print statements
+        print("Received user_id:", user_id)
+        print("Received card_id:", card_id)
+
+        if not user_id or not card_id:
+            print("Missing user_id or card_id")
+            return Response({'error': 'Missing user_id or card_id'}, status=400)
+
         user = User.objects.get(id=user_id)
         pre_existing_card = PreExistingCreditCard.objects.get(id=card_id)
+
+        print("User found:", user)
+        print("Pre-existing card found:", pre_existing_card)
+
         credit_card, created = CreditCard.objects.get_or_create(user=user, pre_existing_card=pre_existing_card)
         
         if not created:
+            print("Card already exists for this user")
             return Response({'error': 'Card already exists'}, status=400)
         
+        print("Card added successfully:", credit_card)
         return Response({
             'id': credit_card.id,
             'pre_existing_card': {
                 'card_name': credit_card.pre_existing_card.card_name,
             }
-        })
+        }, status=201)  # Ensure status code 201 for created
     except User.DoesNotExist:
+        print("User not found")
         return Response({'error': 'User not found'}, status=404)
     except PreExistingCreditCard.DoesNotExist:
+        print("Card not found")
         return Response({'error': 'Card not found'}, status=404)
     except Exception as e:
+        print("Error:", str(e))
         return Response({'error': str(e)}, status=500)
+
+
 
 
 
